@@ -1,125 +1,124 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
+#include <string.h>
 
-// Nodo para la lista enlazada en cada posición de la tabla hash
-typedef struct Node {
-    int num_pag_virtual;   // Número de página virtual
-    int num_marco_pag;     // Número de marco asociado
-    struct Node* next;     // Siguiente nodo en la lista enlazada
-} Node;
+// Estructura para los nodos de la lista enlazada
+typedef struct Nodo {
+    int pagina_virtual;
+    int marco; // Marco físico donde está cargada la página
+    struct Nodo* siguiente;
+} Nodo;
 
-// Estructura de la tabla hash
-typedef struct HashTable {
-    int size;         // Tamaño de la tabla hash
-    Node** table;     // Arreglo dinámico de punteros a nodos
-} HashTable;
+// Estructura para la tabla hash
+typedef struct {
+    Nodo** buckets; // Array dinámico de punteros a listas enlazadas
+    int tamano;     // Tamaño de la tabla hash (número de buckets)
+} TablaHash;
 
-// Función de hash
-int hash_function(HashTable* ht, int key) {
-    return key % ht->size;
+// Función hash (módulo)
+int funcion_hash(int pagina_virtual, int tamano) {
+    return pagina_virtual % tamano;
 }
 
-// Crear un nodo
-Node* create_node(int num_pag_virtual, int num_marco_pag) {
-    Node* new_node = (Node*)malloc(sizeof(Node));
-    new_node->num_pag_virtual = num_pag_virtual;
-    new_node->num_marco_pag = num_marco_pag;
-    new_node->next = NULL;
-    return new_node;
-}
-
-// Crear una tabla hash
-HashTable* create_table(int size) {
-    HashTable* ht = (HashTable*)malloc(sizeof(HashTable));
-    ht->size = size;
-    ht->table = (Node**)malloc(size * sizeof(Node*));
-    for (int i = 0; i < size; i++) {
-        ht->table[i] = NULL;
+// Inicializa la tabla hash
+void inicializar_tabla(TablaHash* tabla, int tamano) {
+    tabla->tamano = tamano;
+    tabla->buckets = (Nodo*)malloc(tamano * sizeof(Nodo));
+    for (int i = 0; i < tamano; i++) {
+        tabla->buckets[i] = NULL;
     }
-    return ht;
 }
 
-// Insertar un par (num_pag_virtual, num_marco_pag) en la tabla hash
-void insert(HashTable* ht, int num_pag_virtual, int num_marco_pag) {
-    int index = hash_function(ht, num_pag_virtual);
-    Node* new_node = create_node(num_pag_virtual, num_marco_pag);
-    // Insertar al inicio de la lista enlazada
-    new_node->next = ht->table[index];
-    ht->table[index] = new_node;
-}
-
-// Buscar un marco por el número de página virtual
-int search(HashTable* ht, int num_pag_virtual) {
-    int index = hash_function(ht, num_pag_virtual);
-    Node* current = ht->table[index];
-    while (current) {
-        if (current->num_pag_virtual == num_pag_virtual) {
-            return current->num_marco_pag; // Encontrado
+// Busca una página virtual en la tabla hash
+int buscar_pagina(TablaHash* tabla, int pagina_virtual) {
+    int indice = funcion_hash(pagina_virtual, tabla->tamano);
+    Nodo* actual = tabla->buckets[indice];
+    while (actual != NULL) {
+        if (actual->pagina_virtual == pagina_virtual) {
+            return 1; // Página encontrada
         }
-        current = current->next;
+        actual = actual->siguiente;
     }
-    return -1; // No encontrado
+    return 0; // Página no encontrada
 }
 
-// Imprimir la tabla hash
-void print_table(HashTable* ht) {
-    for (int i = 0; i < ht->size; i++) {
-        printf("Index %d: ", i);
-        Node* current = ht->table[i];
-        while (current) {
-            printf("(%d -> %d) ", current->num_pag_virtual, current->num_marco_pag);
-            current = current->next;
+// Inserta una página virtual en la tabla hash
+int insertar_pagina(TablaHash* tabla, int pagina_virtual) {
+    int indice = funcion_hash(pagina_virtual, tabla->tamano);
+    if(tabla->buckets[indice]!=NULL){
+        return 0;
+    }
+
+    // Crear un nuevo nodo para la página
+    Nodo* nuevo = (Nodo*)malloc(sizeof(Nodo));
+    nuevo->pagina_virtual = pagina_virtual;
+    nuevo->marco = indice; // El marco es el índice en la tabla
+    nuevo->siguiente = tabla->buckets[indice];
+
+    // Insertar el nodo al inicio de la lista enlazada del bucket
+    tabla->buckets[indice] = nuevo;
+
+    printf("Página %d asignada al marco %d (bucket %d).\n", pagina_virtual, indice, indice);
+    return 1;
+}
+
+// Imprime la tabla hash (para depuración)
+void imprimir_tabla(TablaHash* tabla) {
+    for (int i = 0; i < tabla->tamano; i++) {
+        printf("Bucket %d: ", i);
+        Nodo* actual = tabla->buckets[i];
+        while (actual != NULL) {
+            printf("(%d -> %d) ", actual->pagina_virtual, actual->marco);
+            actual = actual->siguiente;
         }
         printf("\n");
     }
 }
 
-// Liberar memoria de la tabla hash
-void free_table(HashTable* ht) {
-    for (int i = 0; i < ht->size; i++) {
-        Node* current = ht->table[i];
-        while (current) {
-            Node* temp = current;
-            current = current->next;
+// Libera la memoria de la tabla hash
+void liberar_tabla(TablaHash* tabla) {
+    for (int i = 0; i < tabla->tamano; i++) {
+        Nodo* actual = tabla->buckets[i];
+        while (actual != NULL) {
+            Nodo* temp = actual;
+            actual = actual->siguiente;
             free(temp);
         }
     }
-    free(ht->table);
-    free(ht);
+    free(tabla->buckets);
 }
 
-// Programa principal para probar la implementación
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        printf("Uso: %s <tamaño de la tabla>\n", argv[0]);
+    if (argc < 2) {
+        printf("Uso: %s <numero_marcos>\n", argv[0]);
         return 1;
     }
 
-    int size = atoi(argv[1]);
-    if (size <= 0) {
-        printf("El tamaño de la tabla debe ser mayor que 0.\n");
+    int marcos = atoi(argv[1]); // Leer el número de marcos iniciales
+    if (marcos <= 0) {
+        printf("El número de marcos debe ser mayor a 0.\n");
         return 1;
     }
 
-    HashTable* ht = create_table(size);
+    TablaHash tabla;
+    inicializar_tabla(&tabla, marcos);
 
-    // Insertar pares (num_pag_virtual, num_marco_pag)
-    insert(ht, 5, 100);
-    insert(ht, 15, 200);
-    insert(ht, 25, 300);
+    int referencias[] = {0, 1, 3, 4, 1, 2, 5, 1, 2, 3, 4}; // Referencias a páginas virtuales
+    int num_referencias = sizeof(referencias) / sizeof(referencias[0]);
 
-    // Buscar en la tabla hash
-    printf("Frame for virtual page 5: %d\n", search(ht, 5));
-    printf("Frame for virtual page 15: %d\n", search(ht, 15));
-    printf("Frame for virtual page 25: %d\n", search(ht, 25));
-    printf("Frame for virtual page 10 (not in table): %d\n", search(ht, 10));
+    for (int i = 0; i < num_referencias; i++) {
+        int pagina = referencias[i];
+        if (!buscar_pagina(&tabla, pagina)) {
+            printf("FALLO DE PAGINA: Página %d\n", pagina);
+            if(!insertar_pagina(&tabla, pagina)){
+                printf("ALGORITMO DE REEMPLAZO para pagina: %d\n", pagina);
+            }
+        }
+    }
 
-    // Imprimir la tabla hash
-    print_table(ht);
+    printf("\nEstado final de la tabla hash:\n");
+    imprimir_tabla(&tabla);
 
-    // Liberar memoria
-    free_table(ht);
-
+    liberar_tabla(&tabla);
     return 0;
 }
