@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <fstream>
+#include <stdio.h>
 
 class ColaCircularDinamica {
 private:
@@ -92,29 +93,33 @@ public:
         cv_cons.notify_one();
     }
 
-    int pop() {
+    int pop(int tiempoEsperaMax) {
         std::unique_lock<std::mutex> lock(mtx);
-        cv_cons.wait(lock, [this] { return count > 0; });
+        
+        // Espera hasta que haya algo en la cola o hasta que pase el tiempo de espera máximo
+        if (cv_cons.wait_for(lock, std::chrono::milliseconds(tiempoEsperaMax), [this] { return count > 0; })) {
+            // Si la condición se satisface (es decir, hay un elemento en la cola)
+            int dato = buffer[front];
+            front = (front + 1) % buffer.size();
+            --count;
 
-        int dato = buffer[front];
-        front = (front + 1) % buffer.size();
-        --count;
+            std::string mensaje = "Consumido: " + std::to_string(dato) + " | Tamaño actual: " + std::to_string(count);
+            escribirLog(mensaje);
 
-        std::string mensaje = "Consumido: " + std::to_string(dato) + " | Tamaño actual: " + std::to_string(count);
-        escribirLog(mensaje);
+            if (count > 0 && count <= buffer.size() / 4) {
+                reducir();
+            }
 
-        if (count > 0 && count <= buffer.size() / 4) {
-            reducir();
+            cv_prod.notify_one();
+            return dato;
+        } else {
+            // Si se agotó el tiempo de espera sin que haya elementos para consumir
+            std::string mensaje = "Consumidor alcanzó el tiempo de espera sin consumir nada.";
+            escribirLog(mensaje);
+            return -1;  // Retorna un valor indicando que no se consumió nada
         }
-
-        cv_prod.notify_one();
-        return dato;
     }
 
-    size_t capacidad() {
-        std::unique_lock<std::mutex> lock(mtx);
-        return buffer.size();
-    }
 };
 
 void productor(ColaCircularDinamica &cola, int id) {
@@ -125,8 +130,11 @@ void productor(ColaCircularDinamica &cola, int id) {
 }
 
 void consumidor(ColaCircularDinamica &cola, int id, int tiempoEsperaMax) {
-    for (int i = 0; i < 20; ++i) {
-        int dato = cola.pop();
+    while(1){
+        int dato = cola.pop(tiempoEsperaMax);  // Pasamos el tiempo de espera máximo
+        if (dato == -1) {
+            break;  // Si el consumidor no pudo consumir, rompemos el ciclo
+        }
         std::this_thread::sleep_for(std::chrono::seconds(tiempoEsperaMax));
     }
 }
@@ -154,8 +162,7 @@ int main(int argc, char *argv[]) {
                 return EXIT_FAILURE;
         }
     }
-
-    std::cout << "Productores =  " << productores << std::endl << "Consumidores = " << consumidores << std::endl << "Tamaño buffer = " << tam_inicial << std::endl << "Tiempo espera = " << tiempo_espera << std::endl;
+    printf("Productores = %d\nConsumidores = %d\nTamaño buffer = %d\nTiempo espera = %d\n", productores, consumidores, tam_inicial, tiempo_espera);
 
     if (productores <= 0 || consumidores <= 0 || tam_inicial <= 0 || tiempo_espera <= 0) {
         std::cerr << "Todos los parámetros deben ser positivos y mayores a cero." << std::endl;
@@ -176,6 +183,9 @@ int main(int argc, char *argv[]) {
     for (auto &hilo : hilos) {
         hilo.join();
     }
+
+    escribirLog("Fin simulacion\n");
+    printf("Fin Simulacion\n");
 
     return 0;
 }
