@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <fstream>
 #include <stdio.h>
+#include <time.h>
 
 class ColaCircularDinamica {
 private:
@@ -97,7 +98,7 @@ public:
         std::unique_lock<std::mutex> lock(mtx);
         
         // Espera hasta que haya algo en la cola o hasta que pase el tiempo de espera máximo
-        if (cv_cons.wait_for(lock, std::chrono::milliseconds(tiempoEsperaMax), [this] { return count > 0; })) {
+        if (cv_cons.wait_for(lock, std::chrono::seconds(tiempoEsperaMax), [this] { return count > 0; })) {
             // Si la condición se satisface (es decir, hay un elemento en la cola)
             int dato = buffer[front];
             front = (front + 1) % buffer.size();
@@ -125,7 +126,7 @@ public:
 void productor(ColaCircularDinamica &cola, int id) {
     for (int i = 0; i < 5; ++i) {
         cola.push(i + id * 100);
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 50 + 1));
     }
 }
 
@@ -135,11 +136,12 @@ void consumidor(ColaCircularDinamica &cola, int id, int tiempoEsperaMax) {
         if (dato == -1) {
             break;  // Si el consumidor no pudo consumir, rompemos el ciclo
         }
-        std::this_thread::sleep_for(std::chrono::seconds(tiempoEsperaMax));
+        std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 50 + 1));
     }
 }
 
 int main(int argc, char *argv[]) {
+    srand(time(NULL));
     int productores = 0, consumidores = 0, tam_inicial = 0, tiempo_espera = 0;
     int opt;
 
@@ -184,7 +186,6 @@ int main(int argc, char *argv[]) {
         hilo.join();
     }
 
-    escribirLog("Fin simulacion\n");
     printf("Fin Simulacion\n");
 
     return 0;
