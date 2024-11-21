@@ -5,34 +5,43 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <queue>
+
 
 //Tabla de paginas implementada como un std::map
 std::map<int, int> tablaDePaginas;
 
+//COLA PARA FIFO
+std::queue<int> colaFIFO;
+
 //////////////////////////////////////////////////////////FUNCIONES TABLA DE PAGINAS////////////////////////////////////////////////////////////////
 
 //FUncion para determinar si se puede agregar pagina a tabla, si no ejecutar algoritmo de reemplazo
-void manejar_nueva_pagina(std::map<int, int>& tabla, int numeroPagina, int maxMarcos, const std::string& algoritmo, int& fallo_pagina){
+void manejar_nueva_pagina(std::map<int, int>& tabla, int numeroPagina, int maxMarcos, const std::string& algoritmo, int& fallo_pagina, const std::vector<int> referencias, int indice_actual){
     if(buscarPagina(tabla, numeroPagina)){
         // -> si se está usando LRU y la página ya está en memoria, es necesario colocar la página al frente de lru_list
         std::cout << "Página " << numeroPagina << " ya está en memoria." << std::endl;
         return;
     }
+    fallo_pagina++;
+
     // Si la tabla ya está llena
     if (tabla.size() >= maxMarcos) {
-        fallo_pagina++;
-        if(!ejecutarAlgoritmoReemplazo(algoritmo, tabla, numeroPagina, maxMarcos)){
+        if(!ejecutarAlgoritmoReemplazo(algoritmo, tabla, numeroPagina, maxMarcos, referencias, indice_actual)){
             std::cout << "Error, no se pudo reemplazar una pagina" << "\n";
         }
         return;
     }
-    agregarPagina(tabla,numeroPagina,maxMarcos);
+    if(algoritmo == "FIFO"){
+        colaFIFO.push(numeroPagina);
+    }
+    agregarPagina(tabla,numeroPagina);
     return;
 }
 
 
 // Función para agregar una página
-void agregarPagina(std::map<int, int>& tabla, int numeroPagina, int maxMarcos) {
+void agregarPagina(std::map<int, int>& tabla, int numeroPagina) {
     tabla[numeroPagina] = tabla.size(); // Agregar o actualizar la entrada
     std::cout << "Página " << numeroPagina << " asignada al marco " << tabla.size() << std::endl;
 }
@@ -73,6 +82,19 @@ std::vector<int> leerReferencias(const std::string& nombreArchivo) {
     return referencias;
 }
 
+// Función para imprimir la tabla de páginas
+void imprimirTabla(const std::map<int, int>& tabla) {
+    if (tabla.empty()) {
+        std::cout << "La tabla de páginas está vacía." << std::endl;
+        return;
+    }
+
+    std::cout << "Contenido de la tabla de páginas:" << std::endl;
+    std::cout << "Página Virtual -> Marco Físico" << std::endl;
+    for (const auto& [paginaVirtual, marcoFisico] : tabla) {
+        std::cout << paginaVirtual << " -> " << marcoFisico << std::endl;
+    }
+}
 
 
 int main(int argc, char* argv[]) {
@@ -107,8 +129,12 @@ int main(int argc, char* argv[]) {
 
     //Manejar el ingreso de cada pagina de referencias
     std::cout << "Referencias leídas:" << std::endl;
+
+    int indice_actual=0;
     for (int numero_pagina_virtual : referencias) {
-        manejar_nueva_pagina(tablaDePaginas,numero_pagina_virtual,maxMarcos,algoritmo,fallo_pagina);
+        manejar_nueva_pagina(tablaDePaginas,numero_pagina_virtual,maxMarcos,algoritmo,fallo_pagina,referencias,indice_actual);
+        imprimirTabla(tablaDePaginas);
+        indice_actual++;
     }
     std::cout << "Total fallo paginas: "<<fallo_pagina << std::endl;
 
