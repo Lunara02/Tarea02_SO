@@ -107,7 +107,7 @@ public:
             std::string mensaje = "Consumido: " + std::to_string(dato) + " | Tamaño actual: " + std::to_string(count);
             escribirLog(mensaje);
 
-            if (count > 0 && count <= buffer.size() / 4) {
+            if (buffer.size() > 1 && count <= buffer.size() / 4) {
                 reducir();
             }
 
