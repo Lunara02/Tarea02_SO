@@ -97,9 +97,7 @@ public:
     int pop(int tiempoEsperaMax) {
         std::unique_lock<std::mutex> lock(mtx);
         
-        // Espera hasta que haya algo en la cola o hasta que pase el tiempo de espera máximo
         if (cv_cons.wait_for(lock, std::chrono::seconds(tiempoEsperaMax), [this] { return count > 0; })) {
-            // Si la condición se satisface (es decir, hay un elemento en la cola)
             int dato = buffer[front];
             front = (front + 1) % buffer.size();
             --count;
@@ -114,10 +112,9 @@ public:
             cv_prod.notify_one();
             return dato;
         } else {
-            // Si se agotó el tiempo de espera sin que haya elementos para consumir
             std::string mensaje = "Consumidor alcanzó el tiempo de espera sin consumir nada.";
             escribirLog(mensaje);
-            return -1;  // Retorna un valor indicando que no se consumió nada
+            return -1; 
         }
     }
 
@@ -132,9 +129,9 @@ void productor(ColaCircularDinamica &cola, int id) {
 
 void consumidor(ColaCircularDinamica &cola, int id, int tiempoEsperaMax) {
     while(1){
-        int dato = cola.pop(tiempoEsperaMax);  // Pasamos el tiempo de espera máximo
+        int dato = cola.pop(tiempoEsperaMax);  
         if (dato == -1) {
-            break;  // Si el consumidor no pudo consumir, rompemos el ciclo
+            break;  
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 50 + 1));
     }
