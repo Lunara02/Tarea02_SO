@@ -1,7 +1,7 @@
 # Tarea02_SO
 
 FABRICA:
-    Para poder acceder a al codigo de cola debe meterse a la carpeta llamada "simulador_cola" posteriormente poder ejecutar el archivo
+    Para poder acceder a al algoritmo de cola debe meterse a la carpeta llamada "simulador_cola" posteriormente poder ejecutar el archivo
     para ejecutar debe hacer primero:
         g++ cola.c -o simulapc
     despues para ejecutarlo debe usar
@@ -26,7 +26,7 @@ FABRICA:
         ./ -c -p 10 4 -t 3 2 -s
 
 GESTION DE MEMORIA:
-    Para poder acceder a al codigo de cola debe meterse a la carpeta llamada "memoria_virtual" posteriormente poder ejecutar el archivo
+    Para poder acceder a al algoritmo de gestion virtual debe meterse a la carpeta llamada "memoria_virtual" posteriormente poder ejecutar el archivo
     para ejecutar debe hacer primero:
         g++ memVirtual.cpp algoritmos.cpp -o mvirtual
     despues para ejecutarlo debe usar
