@@ -26,5 +26,18 @@ FABRICA:
         ./ -c -p 10 4 -t 3 2 -s
 
 GESTION DE MEMORIA:
-    Para poder acceder a la fabrica debe meterrse a la carpeta llamada "simulador_fabrica" posteriormente 
+    Para poder acceder a al codigo de cola debe meterse a la carpeta llamada "memoria_virtual" posteriormente poder ejecutar el archivo
     para ejecutar debe hacer primero:
+        g++ memVirtual.cpp algoritmos.cpp -o mvirtual
+    despues para ejecutarlo debe usar
+        ./mvirtual -m x -a alg -f archivo.txt
+
+    Tabla de significados:
+         -m = marcos iniciales
+          x = cantidad de marcos iniciales
+         -a = algoritmo de reemplazo
+        alg = nombre del algoritmo de reemplazo
+         -f =  archivo con referencias a memoria dadas en número de página virtual
+archivo.txt = nombre de archivo con referencias a memoria dadas en número de página virtual
+ 
+
